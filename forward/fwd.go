@@ -158,7 +158,7 @@ func (f *Forwarder) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // serveHTTP forwards HTTP traffic using the configured transport
 func (f *httpForwarder) serveHTTP(w http.ResponseWriter, req *http.Request, ctx *handlerContext) {
 	start := time.Now().UTC()
-	response, err := f.roundTripper.RoundTrip(f.copyRequest(req, req.URL))
+	response, err := f.roundTripper.RoundTrip(f.copyRequest(req, req.URL, ctx))
 	if err != nil {
 		ctx.log.Errorf("Error forwarding to %v, err: %v", req.URL, err)
 		ctx.errHandler.ServeHTTP(w, req, err)
@@ -206,7 +206,7 @@ func (f *httpForwarder) serveHTTP(w http.ResponseWriter, req *http.Request, ctx 
 
 // copyRequest makes a copy of the specified request to be sent using the configured
 // transport
-func (f *httpForwarder) copyRequest(req *http.Request, u *url.URL) *http.Request {
+func (f *httpForwarder) copyRequest(req *http.Request, u *url.URL, ctx *handlerContext) *http.Request {
 	outReq := new(http.Request)
 	*outReq = *req // includes shallow copies of maps, but we handle this below
 
@@ -217,6 +217,8 @@ func (f *httpForwarder) copyRequest(req *http.Request, u *url.URL) *http.Request
 	// raw query is already included in RequestURI, so ignore it to avoid dupes
 	outReq.URL.RawQuery = ""
 	// Do not pass client Host header unless optsetter PassHostHeader is set.
+
+	ctx.log.Infof("f.passHost: %t, u.Host: %s", f.passHost, u.Host)
 	if !f.passHost {
 		if !strings.Contains(u.Host, ":") {
 			if outReq.URL.Scheme == "https" || outReq.URL.Scheme == "wss" {
