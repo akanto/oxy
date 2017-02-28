@@ -218,7 +218,15 @@ func (f *httpForwarder) copyRequest(req *http.Request, u *url.URL) *http.Request
 	outReq.URL.RawQuery = ""
 	// Do not pass client Host header unless optsetter PassHostHeader is set.
 	if !f.passHost {
-		outReq.Host = u.Host
+		if !strings.Contains(u.Host, ":") {
+			if outReq.URL.Scheme == "https" || outReq.URL.Scheme == "wss" {
+				outReq.Host = u.Host + ":443"
+			} else {
+				outReq.Host = u.Host + ":80"
+			}
+		} else {
+			outReq.Host = u.Host
+		}
 	}
 	outReq.Proto = "HTTP/1.1"
 	outReq.ProtoMajor = 1
